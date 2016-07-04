@@ -43,7 +43,8 @@
 #include <binary-io.h>
 
 /*  sgsh negotiate API (fix -I) */
-#include <assert.h>          /* assert() */
+#include <assert.h>		/* assert() */
+#include <sys/stat.h>		/* struct stat */
 #include "sgsh-negotiate.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
@@ -1406,83 +1407,90 @@ compare_files (struct comparison const *parent,
       /* Open the files and record their descriptors.  */
 
       /* sgsh */
-      int ninputfds = -1;
-      int noutputfds = -1;
+      int ninputfds = -1, ninputfds_expected = 0;
+      int noutputfds = -1, noutputfds_expected = 0;
       int *inputfds;
       int *outputfds;
       char sgshin[10];
       char sgshout[11];
+      struct stat stats;
+      int re = fstat(fileno(stdout), &stats);
+      if (re < 0)
+	error(1, errno, "fstat failed\n");
 
-      /* sgsh */
-      strcpy(sgshin, "SGSH_IN=1");
+      strcpy(sgshin, "SGSH_IN=0");
+      if (STREQ(cmp.file[0].name, "-"))
+	{
+	strcpy(sgshin, "SGSH_IN=1");
+	ninputfds_expected++;
+	}
+      if (STREQ(cmp.file[1].name, "-"))
+        {
+	strcpy(sgshin, "SGSH_IN=1");
+	ninputfds_expected++;
+	}
       putenv(sgshin);
-      strcpy(sgshout, "SGSH_OUT=1");
-      putenv(sgshout);
-
-      /* sgsh */
-      /* If 1 of 2 inputs is file,
-       * additional handling will be required.
+      /* If standard output not connected to terminal and
+       * connected to either a socket or a FIFO pipe
+       * then its output channel is part of the sgsh graph
        */
-      sgsh_negotiate("diff", 2, 1, &inputfds, &ninputfds, &outputfds,
-                     &noutputfds);
-
-      assert(noutputfds == 1);
-      outfile = fdopen(outputfds[0], "w");
-
-      assert(ninputfds > 0 && ninputfds <= 2);
-      if (ninputfds == 0)
-        {
-        int oflags = O_RDONLY | (binary ? O_BINARY : 0);
-        if (cmp.file[0].desc == UNOPENED)
-	  if ((cmp.file[0].desc = open (cmp.file[0].name, oflags, 0)) < 0)
-	    {
-	      perror_with_name (cmp.file[0].name);
-	      status = EXIT_TROUBLE;
-	    }
-        if (cmp.file[1].desc == UNOPENED)
-	  {
-	    if (same_files)
-	      cmp.file[1].desc = cmp.file[0].desc;
-	    else if ((cmp.file[1].desc = open (cmp.file[1].name, oflags, 0)) < 0)
-	      {
-	        perror_with_name (cmp.file[1].name);
-	        status = EXIT_TROUBLE;
-	      }
-	  }
-        }
-      else if (ninputfds == 1)
-        {
-        int oflags = O_RDONLY | (binary ? O_BINARY : 0);
-        if STREQ(cmp.file[0].name, "-")
-          {
-          cmp.file[0].desc = inputfds[0];
-          if (cmp.file[1].desc == UNOPENED)
-	    {
-	      if (same_files)
-	        cmp.file[1].desc = cmp.file[0].desc;
-	      else if ((cmp.file[1].desc = open (cmp.file[1].name, oflags, 0)) < 0)
-	        {
-	          perror_with_name (cmp.file[1].name);
-	          status = EXIT_TROUBLE;
-	        }
-	    }
-          }
-        else
-          {
-          cmp.file[1].desc = inputfds[0];
-          if (cmp.file[0].desc == UNOPENED)
-	    if ((cmp.file[0].desc = open (cmp.file[0].name, oflags, 0)) < 0)
-	      {
-	        perror_with_name (cmp.file[0].name);
-	        status = EXIT_TROUBLE;
-	      }
-          }
-        }
+      if (!isatty(fileno(stdout)) &&
+	  (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
+      {
+	strcpy(sgshout, "SGSH_OUT=1");
+	noutputfds_expected = 1;
+      }
       else
+	strcpy(sgshout, "SGSH_OUT=0");
+      putenv(sgshout);
+      
+      /* sgsh */
+      sgsh_negotiate("diff", ninputfds_expected, noutputfds_expected, &inputfds,
+	                                &ninputfds, &outputfds, &noutputfds);
+
+      assert(noutputfds == noutputfds_expected);
+      if (noutputfds)
+        outfile = fdopen(outputfds[0], "w");
+      else
+	outfile = stdout;
+
+      /* sgsh scaffolding
+      int j;
+      for (j = 0; j < ninputfds; j++) {
+	char buf[100];
+	int rsize = read(inputfds[j], buf, 100);
+	if (rsize == -1)
+          error(EXIT_FAILURE, errno, "Read failed.\n");
+	fprintf(stderr, "%s", buf);
+      }
+      */
+
+      assert(ninputfds == ninputfds_expected);
+      int i = 0;
+      int oflags = O_RDONLY | (binary ? O_BINARY : 0);
+      if (cmp.file[0].desc == UNOPENED)
         {
-        cmp.file[0].desc = inputfds[0];
-        cmp.file[1].desc = inputfds[1];
-        }
+	if ((cmp.file[0].desc = open (cmp.file[0].name, oflags, 0)) < 0)
+	  {
+	  perror_with_name (cmp.file[0].name);
+	  status = EXIT_TROUBLE;
+	  }
+	}
+      else
+	cmp.file[0].desc = inputfds[i++];
+
+      if (cmp.file[1].desc == UNOPENED)
+	{
+	if (same_files)
+	  cmp.file[1].desc = cmp.file[0].desc;
+	else if ((cmp.file[1].desc = open (cmp.file[1].name, oflags, 0)) < 0)
+	  {
+	    perror_with_name (cmp.file[1].name);
+	    status = EXIT_TROUBLE;
+	  }
+	}
+      else
+	cmp.file[1].desc = inputfds[i];
 
       /* Compare the files, if no error was found.  */
 
