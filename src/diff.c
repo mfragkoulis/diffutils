@@ -1411,38 +1411,22 @@ compare_files (struct comparison const *parent,
       int noutputfds = -1, noutputfds_expected = 0;
       int *inputfds;
       int *outputfds;
-      char sgshin[10];
-      char sgshout[11];
       struct stat stats;
       int re = fstat(fileno(stdout), &stats);
       if (re < 0)
 	error(1, errno, "fstat failed\n");
 
-      strcpy(sgshin, "SGSH_IN=0");
       if (STREQ(cmp.file[0].name, "-"))
-	{
-	strcpy(sgshin, "SGSH_IN=1");
 	ninputfds_expected++;
-	}
       if (STREQ(cmp.file[1].name, "-"))
-        {
-	strcpy(sgshin, "SGSH_IN=1");
 	ninputfds_expected++;
-	}
-      putenv(sgshin);
       /* If standard output not connected to terminal and
        * connected to either a socket or a FIFO pipe
        * then its output channel is part of the sgsh graph
        */
       if (!isatty(fileno(stdout)) &&
 	  (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
-      {
-	strcpy(sgshout, "SGSH_OUT=1");
 	noutputfds_expected = 1;
-      }
-      else
-	strcpy(sgshout, "SGSH_OUT=0");
-      putenv(sgshout);
       
       /* sgsh */
       sgsh_negotiate("diff", ninputfds_expected, noutputfds_expected, &inputfds,
