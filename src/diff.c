@@ -44,7 +44,6 @@
 
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>		/* assert() */
-#include <sys/stat.h>		/* struct stat */
 #include "sgsh-negotiate.h"
 
 /* The official name of this program (e.g., no 'g' prefix).  */
@@ -1407,36 +1406,16 @@ compare_files (struct comparison const *parent,
       /* Open the files and record their descriptors.  */
 
       /* sgsh */
-      int ninputfds = -1, ninputfds_expected = 0;
-      int noutputfds = -1, noutputfds_expected = 0;
+      int ninputfds = 0;
       int *inputfds;
-      int *outputfds;
-      struct stat stats;
-      int re = fstat(fileno(stdout), &stats);
-      if (re < 0)
-	error(1, errno, "fstat failed\n");
 
       if (STREQ(cmp.file[0].name, "-"))
-	ninputfds_expected++;
+	ninputfds++;
       if (STREQ(cmp.file[1].name, "-"))
-	ninputfds_expected++;
-      /* If standard output not connected to terminal and
-       * connected to either a socket or a FIFO pipe
-       * then its output channel is part of the sgsh graph
-       */
-      if (!isatty(fileno(stdout)) &&
-	  (S_ISFIFO(stats.st_mode) || S_ISSOCK(stats.st_mode)))
-	noutputfds_expected = 1;
+	ninputfds++;
       
       /* sgsh */
-      sgsh_negotiate("diff", ninputfds_expected, noutputfds_expected, &inputfds,
-	                                &ninputfds, &outputfds, &noutputfds);
-
-      assert(noutputfds == noutputfds_expected);
-      if (noutputfds)
-        outfile = fdopen(outputfds[0], "w");
-      else
-	outfile = stdout;
+      sgsh_negotiate("diff", &ninputfds, NULL, &inputfds, NULL);
 
       /* sgsh scaffolding
       int j;
@@ -1449,8 +1428,6 @@ compare_files (struct comparison const *parent,
       }
       */
 
-      assert(ninputfds == ninputfds_expected);
-      int i = 0;
       int oflags = O_RDONLY | (binary ? O_BINARY : 0);
       if (cmp.file[0].desc == UNOPENED)
         {
@@ -1461,7 +1438,7 @@ compare_files (struct comparison const *parent,
 	  }
 	}
       else
-	cmp.file[0].desc = inputfds[i++];
+	cmp.file[0].desc = STDIN_FILENO;
 
       if (cmp.file[1].desc == UNOPENED)
 	{
@@ -1474,7 +1451,7 @@ compare_files (struct comparison const *parent,
 	  }
 	}
       else
-	cmp.file[1].desc = inputfds[i];
+	cmp.file[1].desc = (ninputfds == 2 ? inputfds[1] : STDIN_FILENO);
 
       /* Compare the files, if no error was found.  */
 
@@ -1511,7 +1488,7 @@ compare_files (struct comparison const *parent,
       /* Flush stdout so that the user sees differences immediately.
 	 This can hurt performance, unfortunately.  */
       /* sgsh */
-      if (fflush (outfile) != 0)
+      if (fflush (stdout) != 0)
 	pfatal_with_name (_("standard output"));
     }
 
