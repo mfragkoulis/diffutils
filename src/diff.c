@@ -1265,6 +1265,10 @@ compare_files (struct comparison const *parent,
   else if ((same_files
 	    = (cmp.file[0].desc != NONEXISTENT
 	       && cmp.file[1].desc != NONEXISTENT
+	       /* sgsh: both files from stdin does not mean same */
+	       && !(STREQ(cmp.file[0].name, "-")
+	          && STREQ(cmp.file[1].name, "-"))
+	       && cmp.file[1].desc != NONEXISTENT
 	       && 0 < same_file (&cmp.file[0].stat, &cmp.file[1].stat)
 	       && same_file_attributes (&cmp.file[0].stat,
 					&cmp.file[1].stat)))
@@ -1421,11 +1425,16 @@ compare_files (struct comparison const *parent,
       int j;
       for (j = 0; j < ninputfds; j++) {
 	char buf[100];
-	int rsize = read(inputfds[j], buf, 100);
+	int rsize;
+	if (j == 0)
+	  rsize = read(STDIN_FILENO, buf, 100);
+	else
+	  rsize = read(inputfds[j], buf, 100);
 	if (rsize == -1)
           error(EXIT_FAILURE, errno, "Read failed.\n");
-	fprintf(stderr, "%s", buf);
+	fprintf(stderr, "fd %d: %s\n", (j == 0) ? 0 : inputfds[j], buf);
       }
+      exit(1);
       */
 
       int oflags = O_RDONLY | (binary ? O_BINARY : 0);
@@ -1454,7 +1463,6 @@ compare_files (struct comparison const *parent,
 	cmp.file[1].desc = (ninputfds == 2 ? inputfds[1] : STDIN_FILENO);
 
       /* Compare the files, if no error was found.  */
-
       if (status == EXIT_SUCCESS)
 	status = diff_2_files (&cmp);
 

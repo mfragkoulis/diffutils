@@ -466,7 +466,6 @@ diff_2_files (struct comparison *cmp)
   struct change *script;
   int changes;
 
-
   /* If we have detected that either file is binary,
      compare the two files as binary.  This can happen
      only when the first chunk is read.
