@@ -45,6 +45,7 @@
 /*  sgsh negotiate API (fix -I) */
 #include <assert.h>		/* assert() */
 #include "sgsh-negotiate.h"
+char negotiation_title[100];
 
 /* The official name of this program (e.g., no 'g' prefix).  */
 #define PROGRAM_NAME "diff"
@@ -299,6 +300,16 @@ main (int argc, char **argv)
   ignore_regexp_list.buf = &ignore_regexp;
   re_set_syntax (RE_SYNTAX_GREP | RE_NO_POSIX_BACKTRACKING);
   excluded = new_exclude ();
+
+  /* sgsh */
+  if (argc >= 3)
+    snprintf(negotiation_title, 100, "%s %s %s",
+	argv[0], argv[1], argv[2]);
+  else if (argc == 2)
+    snprintf(negotiation_title, 100, "%s %s",
+	argv[0], argv[1]);
+  else
+    snprintf(negotiation_title, 100, "%s", argv[0]);
 
   /* Decode the options.  */
 
@@ -1419,7 +1430,12 @@ compare_files (struct comparison const *parent,
 	ninputfds++;
       
       /* sgsh */
-      sgsh_negotiate("diff", &ninputfds, NULL, &inputfds, NULL);
+      if (sgsh_negotiate(negotiation_title,
+			      &ninputfds, NULL, &inputfds, NULL) != 0)
+        {
+          printf("sgsh negotiation failed with status code %d.\n", status);
+          exit(1);
+        }
 
       /* sgsh scaffolding
       int j;
