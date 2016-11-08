@@ -70,7 +70,8 @@ struct regexp_list
   struct re_pattern_buffer *buf;
 };
 
-static int compare_files (struct comparison const *, char const *, char const *);
+static int compare_files (struct comparison const *, int nfiles,
+		char const *, char const *);
 static void add_regexp (struct regexp_list *, char const *);
 static void summarize_regexp_list (struct regexp_list *);
 static void specify_style (enum output_style);
@@ -779,7 +780,7 @@ main (int argc, char **argv)
       else
 	for (; optind < argc; optind++)
 	  {
-	    int status = compare_files (NULL, from_file, argv[optind]);
+	    int status = compare_files (NULL, 2, from_file, argv[optind]);
 	    if (exit_status < status)
 	      exit_status = status;
 	  }
@@ -789,21 +790,33 @@ main (int argc, char **argv)
       if (to_file)
 	for (; optind < argc; optind++)
 	  {
-	    int status = compare_files (NULL, argv[optind], to_file);
+	    int status = compare_files (NULL, 2, argv[optind], to_file);
 	    if (exit_status < status)
 	      exit_status = status;
 	  }
       else
 	{
-	  if (argc - optind != 2)
+	  /*if (argc - optind != 2)
 	    {
 	      if (argc - optind < 2)
 		try_help ("missing operand after '%s'", argv[argc - 1]);
 	      else
 		try_help ("extra operand '%s'", argv[optind + 2]);
 	    }
-
-	  exit_status = compare_files (NULL, argv[optind], argv[optind + 1]);
+	  */
+	  switch (argc - optind)
+	    {
+	      case 2:
+	        exit_status = compare_files (NULL, 2, argv[optind],
+				argv[optind + 1]);
+		break;
+	      case 1:
+	        exit_status = compare_files (NULL, 1, argv[optind], NULL);
+		break;
+	      case 0:
+	        exit_status = compare_files (NULL, 0, NULL, NULL);
+		break;
+	    }
 	}
     }
 
@@ -1095,6 +1108,7 @@ set_mtime_to_now (struct stat *st)
 
 static int
 compare_files (struct comparison const *parent,
+	       int nfiles,
 	       char const *name0,
 	       char const *name1)
 {
@@ -1105,11 +1119,26 @@ compare_files (struct comparison const *parent,
   bool same_files;
   char *free0;
   char *free1;
+  char stdin_name[] = "-";
+
+  /* sgsh: sub missing file arguments with the stdin special name */
+  switch (nfiles)
+    {
+      case 0:
+        name0 = stdin_name;
+        name1 = stdin_name;
+        break;
+      case 1:
+	if (name0)
+          name1 = stdin_name;
+	else
+	  name0 = stdin_name;
+	break;
+    }
 
   /* If this is directory comparison, perhaps we have a file
      that exists only in one of the directories.
      If so, just print a message to that effect.  */
-
   if (! ((name0 && name1)
 	 || (unidirectional_new_file && name1)
 	 || new_file))
@@ -1139,7 +1168,6 @@ compare_files (struct comparison const *parent,
   cmp.file[1].desc = name1 ? UNOPENED : NONEXISTENT;
 
   /* Now record the full name of each file, including nonexistent ones.  */
-
   if (!name0)
     name0 = name1;
   if (!name1)
@@ -1421,14 +1449,14 @@ compare_files (struct comparison const *parent,
       /* Open the files and record their descriptors.  */
 
       /* sgsh */
-      int ninputfds = 0;
+      int ninputfds;
       int *inputfds;
 
       if (STREQ(cmp.file[0].name, "-"))
 	ninputfds++;
       if (STREQ(cmp.file[1].name, "-"))
 	ninputfds++;
-      
+
       /* sgsh */
       if (sgsh_negotiate(negotiation_title,
 			      &ninputfds, NULL, &inputfds, NULL) != 0)

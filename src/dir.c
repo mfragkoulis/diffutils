@@ -212,7 +212,7 @@ compare_names_for_qsort (void const *file1, void const *file2)
 
 int
 diff_dirs (struct comparison const *cmp,
-	   int (*handle_file) (struct comparison const *,
+	   int (*handle_file) (struct comparison const *, int nfiles,
 			       char const *, char const *))
 {
   struct dirdata dirdata[2];
@@ -305,7 +305,7 @@ diff_dirs (struct comparison const *cmp,
 		}
 	    }
 
-	  int v1 = (*handle_file) (cmp,
+	  int v1 = (*handle_file) (cmp, 2, /* sgsh: compare_files */
 				   0 < nameorder ? 0 : *names[0]++,
 				   nameorder < 0 ? 0 : *names[1]++);
 	  if (val < v1)

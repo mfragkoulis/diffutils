@@ -352,8 +352,9 @@ extern void print_context_header (struct file_data[], char const * const *, bool
 extern void print_context_script (struct change *, bool);
 
 /* dir.c */
+/* nfiles: sgsh: compare_files */
 extern int diff_dirs (struct comparison const *,
-                      int (*) (struct comparison const *,
+                      int (*) (struct comparison const *, int nfiles,
                                char const *, char const *));
 extern char *find_dir_file_pathname (char const *, char const *);
 
