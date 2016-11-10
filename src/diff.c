@@ -1449,7 +1449,7 @@ compare_files (struct comparison const *parent,
       /* Open the files and record their descriptors.  */
 
       /* sgsh */
-      int ninputfds;
+      int ninputfds = 0;
       int *inputfds;
 
       if (STREQ(cmp.file[0].name, "-"))
