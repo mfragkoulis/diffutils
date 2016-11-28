@@ -42,9 +42,9 @@
 #include <xreadlink.h>
 #include <binary-io.h>
 
-/*  sgsh negotiate API (fix -I) */
+/*  dgsh negotiate API (fix -I) */
 #include <assert.h>		/* assert() */
-#include "sgsh-negotiate.h"
+#include "dgsh-negotiate.h"
 char negotiation_title[100];
 
 /* The official name of this program (e.g., no 'g' prefix).  */
@@ -302,7 +302,7 @@ main (int argc, char **argv)
   re_set_syntax (RE_SYNTAX_GREP | RE_NO_POSIX_BACKTRACKING);
   excluded = new_exclude ();
 
-  /* sgsh */
+  /* dgsh */
   if (argc >= 3)
     snprintf(negotiation_title, 100, "%s %s %s",
 	argv[0], argv[1], argv[2]);
@@ -1121,7 +1121,7 @@ compare_files (struct comparison const *parent,
   char *free1;
   char stdin_name[] = "-";
 
-  /* sgsh: sub missing file arguments with the stdin special name */
+  /* dgsh: sub missing file arguments with the stdin special name */
   switch (nfiles)
     {
       case 0:
@@ -1304,7 +1304,7 @@ compare_files (struct comparison const *parent,
   else if ((same_files
 	    = (cmp.file[0].desc != NONEXISTENT
 	       && cmp.file[1].desc != NONEXISTENT
-	       /* sgsh: both files from stdin does not mean same */
+	       /* dgsh: both files from stdin does not mean same */
 	       && !(STREQ(cmp.file[0].name, "-")
 	          && STREQ(cmp.file[1].name, "-"))
 	       && cmp.file[1].desc != NONEXISTENT
@@ -1448,7 +1448,7 @@ compare_files (struct comparison const *parent,
 
       /* Open the files and record their descriptors.  */
 
-      /* sgsh */
+      /* dgsh */
       int ninputfds = 0;
       int *inputfds;
 
@@ -1457,15 +1457,15 @@ compare_files (struct comparison const *parent,
       if (STREQ(cmp.file[1].name, "-"))
 	ninputfds++;
 
-      /* sgsh */
-      if (sgsh_negotiate(negotiation_title,
+      /* dgsh */
+      if (dgsh_negotiate(negotiation_title,
 			      &ninputfds, NULL, &inputfds, NULL) != 0)
         {
-          printf("sgsh negotiation failed with status code %d.\n", status);
+          printf("dgsh negotiation failed with status code %d.\n", status);
           exit(1);
         }
 
-      /* sgsh scaffolding
+      /* dgsh scaffolding
       int j;
       for (j = 0; j < ninputfds; j++) {
 	char buf[100];
@@ -1539,7 +1539,7 @@ compare_files (struct comparison const *parent,
     {
       /* Flush stdout so that the user sees differences immediately.
 	 This can hurt performance, unfortunately.  */
-      /* sgsh */
+      /* dgsh */
       if (fflush (stdout) != 0)
 	pfatal_with_name (_("standard output"));
     }

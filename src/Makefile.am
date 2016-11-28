@@ -20,11 +20,11 @@ bin_PROGRAMS = cmp diff diff3 sdiff
 
 localedir = $(datadir)/locale
 
-# sgsh include path: -I../../..
+# dgsh include path: -I../../..
 AM_CPPFLAGS = -I../lib -I$(top_srcdir)/lib -I../../..
 AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
 
-# sgsh link against the sgsh negotiation library
+# dgsh link against the dgsh negotiation library
 LDADD = \
   libver.a \
   ../lib/libdiffutils.a \
@@ -33,7 +33,7 @@ LDADD = \
   $(LIBICONV) \
   $(LIBSIGSEGV) \
   $(LIB_CLOCK_GETTIME) \
-  ../../../libsgsh_negotiate.a
+  ../../../libdgsh_negotiate.a
 
 diff_LDADD = $(LDADD)
 cmp_LDADD = $(LDADD)
