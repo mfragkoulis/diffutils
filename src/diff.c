@@ -1461,7 +1461,7 @@ compare_files (struct comparison const *parent,
       if (dgsh_negotiate(negotiation_title,
 			      &ninputfds, NULL, &inputfds, NULL) != 0)
         {
-          printf("dgsh negotiation failed with status code %d.\n", status);
+          DPRINTF("dgsh negotiation failed with status code %d.\n", status);
           exit(1);
         }
 
