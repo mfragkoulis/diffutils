@@ -33,7 +33,7 @@ LDADD = \
   $(LIBICONV) \
   $(LIBSIGSEGV) \
   $(LIB_CLOCK_GETTIME) \
-  ../../../libdgsh_negotiate.a
+  ../../../libdgsh.a
 
 diff_LDADD = $(LDADD)
 cmp_LDADD = $(LDADD)
