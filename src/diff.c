@@ -1458,9 +1458,8 @@ compare_files (struct comparison const *parent,
 	ninputfds++;
 
       /* dgsh */
-      if (dgsh_negotiate(negotiation_title,
-			      &ninputfds, NULL, &inputfds, NULL) != 0)
-          exit(1);
+      dgsh_negotiate(DGSH_HANDLE_ERROR, negotiation_title, &ninputfds,
+		      NULL, &inputfds, NULL);
 
       /* dgsh scaffolding
       int j;
